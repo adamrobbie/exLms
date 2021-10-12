@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # The directory Mix will write compiled artifacts to.
 /_build/
 
@@ -24,3 +25,15 @@ mastery-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/
+=======
+/_build
+/cover
+/deps
+/doc
+/.fetch
+erl_crash.dump
+*.ez
+*.beam
+/config/*.secret.exs
+.elixir_ls/
+>>>>>>> 939176ad8e533e45d9bdd5434178ded9b124e7df
