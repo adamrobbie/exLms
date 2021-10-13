@@ -7,8 +7,10 @@ defmodule Mastery.Application do
         [name: Mastery.Boundary.QuizManager] },
       { Registry,
         [name: Mastery.Registry.QuizSession, keys: :unique] },
+      { Mastery.Boundary.Proctor,
+        [name: Master.Boundary.Proctor] },
       { DynamicSupervisor,
-        [name: Mastery.Supervisor.QuizSession, strategy: :one_for_one] }
+        [name: Mastery.Supervisor.QuizSession, strategy: :one_for_one] },
       ]
 
     opts = [strategy: :one_for_one, name: Mastery.Supervisor]

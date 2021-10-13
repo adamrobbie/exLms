@@ -12,11 +12,15 @@ defmodule Mastery.Boundary.Proctor do
   end
 
   def start_quiz(quiz, now) do
-    Logger.info "Starting a quiz %{quiz.fields.title}"
+    Logger.info "Starting a quiz #{quiz.fields.title}"
     QuizManager.build_quiz(quiz.fields)
     Enum.each(quiz.templates, &add_template(quiz, &1))
     timeout = DateTime.diff(quiz.end_at, now, :milisecond)
-    Process.send_after(self(), {end_quiz, quiz.fields.title}, timeout)
+    Process.send_after(self(), {:end_quiz, quiz.fields.title}, timeout)
+  end
+
+  def add_template(quiz, template_fields) do
+    QuizManager.add_template(quiz.fields.title, template_fields)
   end
 
   def start_quizzes(quizzes, now) do
@@ -37,8 +41,17 @@ defmodule Mastery.Boundary.Proctor do
 
   def handle_info(:timeout, quizzes) do
     now = DateTime.utc_now
-    remaing_quzzes = start_quizzes(quizzes, now)
-    build_reply_with_timeout({:noreply}, remaining_quizzes, now))
+    remaining_quizzes = start_quizzes(quizzes, now)
+    build_reply_with_timeout({:noreply}, remaining_quizzes, now)
+  end
+
+  def handle_info({:end_qiz, title}, quizzes) do
+    QuizManager.remove_quiz(title)
+    title
+    |> QuizSession.active_session_for
+    |> QuizSession.end_sessions
+    Logger.info "Quiz stopped #{title}."
+    handle_info(:timeout, quizzes)
   end
 
   def handle_call({:schedul_quiz, quiz}, _from, quizzes) do
@@ -57,7 +70,7 @@ defmodule Mastery.Boundary.Proctor do
     |> maybe_append_timeout(quizzes, now)
   end
 
-  defp append_state(typle, quizzes), do: Tuple.append(tuple, quizzes)
+  defp append_state(tuple, quizzes), do: Tuple.append(tuple, quizzes)
 
   defp maybe_append_timeout(tuple, [], _now), do: tuple
   defp maybe_append_tiemout(tuple, quizzes, now) do
@@ -69,7 +82,7 @@ defmodule Mastery.Boundary.Proctor do
     Tuple.append(tuple, timeout)
   end
 
-  defp date_time_less_than_or_equal(a, b) do
+  defp date_time_less_than_or_equal?(a, b) do
     DateTime.compare(a, b) in ~w[lt eq]a
   end
 

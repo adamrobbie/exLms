@@ -26,6 +26,13 @@ defmodule Mastery.Boundary.QuizSession do
     GenServer.call(via(name), {:answer_question, answer})
   end
 
+  def active_sessions_for(quiz_title) do
+    Mastery.Supervisor.QuizSession
+    |> DynamicSypervisor.which_children
+    |> Enum.filter(&child_pid?/1)
+    |> Enum.flat_map(&active_sessions(&1, quiz_title))
+  end
+
   def via({_title, _email}=name) do
     {:via, Registry, {Mastery.Registry.QuizSession, name}}
   end
@@ -49,6 +56,17 @@ defmodule Mastery.Boundary.QuizSession do
   defp maybe_finish(nill, _email), do: {:stop, :normal, :finished, nil }
   defp maybe_finish(quiz, email) do
     {:reply, {quiz.current_question.asked, quiz.last_response.correct}, {quiz, email}}
+  end
+
+  defp child_pid?({:undefined, pid, :worker, [__MODULE__]}) when is_pid(pid) do true end
+  defp child_pid?(_child), do: false
+
+  defp active_sessions({:undefined, pid, :worker, [__MODULE]}, title) do
+    Mastery.Registry.QuizSession
+    |> Registry.keys(pid)
+    |> Enum.filter(fn {quiz_title, _email} ->
+      quiz_title == title
+    end)
   end
 
 
