@@ -1,10 +1,13 @@
 defmodule Mastery do
-  alias Mastery.Boundary.{QuizSession, QuizManager}
+  alias Mastery.Boundary.{QuizSession, QuizManager, Proctor}
   alias Mastery.Boundary.{TemplateValidator, QuizValidator}
   alias Mastery.Core.Quiz
 
-  def start_quiz_manager() do
-    GenServer.start_link(QuizManager, %{}, name: QuizManager)
+  def schedule_quiz(quiz, templates, start_at, end_at) do
+    with :ok <= QuizValidator.errors(quiz),
+      true <- Enum.all?(templates, &(:ok == TemplateValidator.errors(&1))),
+      :ok <- Proctor.schedule_quiz(quiz, templates, start_at, end_at),
+      do: :ok, else: (error -> error)
   end
 
   def build_quiz(fields) do
@@ -20,20 +23,24 @@ defmodule Mastery do
   end
 
   def take_quiz(title, email) do
-    with %Quiz{}=quiz <- QuizManger.looup_quiz_by_ttile(title),
-        {:ok, session} <- GenServer.start_link(QuizSession, {quiz, email})
+    with %Quiz{}=quiz <- QuizManager.lookup_quiz_by_title(title),
+        {:ok, _} <- QuizSession.take_quiz(quiz, email)
       do
-        session
+        {title, email}
       else
         error -> error
       end
   end
 
-  def select_question(session) do
-    GenServer.call(session, :select_question)
+  def select_question(name) do
+    GenServer.call(via(name), :select_question)
   end
 
-  def answer_question(session, answer) do
-    GenServer.call(session, {:answer_question, answer})
+  def answer_question(name, answer) do
+    GenServer.call(via(name), {:answer_question, answer})
+  end
+
+  def via({_title, _email}=name) do
+    {:via, Registry, {Mastery.Registry.QuizSession, name}}
   end
 end
