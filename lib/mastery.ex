@@ -8,7 +8,7 @@ defmodule Mastery do
       true <- Enum.all?(templates, &(:ok == TemplateValidator.errors(&1))),
       :ok <- Proctor.schedule_quiz(quiz, templates, start_at, end_at),
       do: :ok, else: (error -> error)
-  end
+  endwqbv           g+
 
   def build_quiz(fields) do
     with :ok <- QuizValidator.errors(fields),

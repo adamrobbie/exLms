@@ -32,6 +32,10 @@ defmodule Mastery.Boundary.QuizSession do
     |> Enum.filter(&child_pid?/1)
     |> Enum.flat_map(&active_sessions(&1, quiz_title))
   end
+  
+  def end_sessions(names) do
+    Enum.each(names, fn name -> GenServer.stop(via(name)) end)
+  end
 
   def via({_title, _email}=name) do
     {:via, Registry, {Mastery.Registry.QuizSession, name}}
